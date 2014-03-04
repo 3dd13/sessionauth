@@ -50,22 +50,24 @@ func TestAuthenticateSession(t *testing.T) {
 
 	m.Use(render.Renderer())
 	m.Use(sessions.Sessions("my_session", store))
-	m.Use(SessionUser(NewUser))
+
+	newSessionAuth := NewSessionAuth()
+	m.Use(newSessionAuth.SessionUser(NewUser))
 
 	m.Get("/setauth", func(session sessions.Session, user User) string {
-		err := AuthenticateSession(session, user)
+		err := newSessionAuth.AuthenticateSession(session, user)
 		if err != nil {
 			t.Error(err)
 		}
 		return "OK"
 	})
 
-	m.Get("/private", LoginRequired, func(session sessions.Session, user User) string {
+	m.Get("/private", newSessionAuth.LoginRequired, func(session sessions.Session, user User) string {
 		return "OK"
 	})
 
-	m.Get("/logout", LoginRequired, func(session sessions.Session, user User) string {
-		Logout(session, user)
+	m.Get("/logout", newSessionAuth.LoginRequired, func(session sessions.Session, user User) string {
+		newSessionAuth.Logout(session, user)
 		return "OK"
 	})
 
