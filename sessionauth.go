@@ -76,7 +76,7 @@ func (sAuth SessionAuth) SessionUser(newUser func() User) martini.Handler {
 			}
 		}
 
-		c.MapTo(user, (*User)(nil))
+		c.MapTo(user, reflect.TypeOf(user).Elem())
 	}
 }
 
