@@ -10,6 +10,7 @@ import (
 	"github.com/martini-contrib/sessions"
 	"log"
 	"net/http"
+	"reflect"
 )
 
 type SessionAuth struct {
@@ -23,6 +24,9 @@ type SessionAuth struct {
 
 	// SessionKey is the key containing the unique ID in your session
   SessionKey    string `form:"-" db:"-"`
+
+  // ResourceType is the string representation of User struct RUNTIME type
+	ResourceType  string `form:"-" db:"-"`
 }
 
 // User defines all the functions necessary to work with the user's authentication.
@@ -48,7 +52,7 @@ type User interface {
 // These are the default configuration values for this package. They
 // can be set at anytime, probably during the initial setup of Martini.
 func NewSessionAuth() SessionAuth {
-	return SessionAuth{"/login", "next", "AUTHUNIQUEID"}
+	return SessionAuth{"/login", "next", "AUTHUNIQUEID", "User"}
 }
 
 
@@ -95,7 +99,7 @@ func (sAuth SessionAuth) Logout(s sessions.Session, user User) {
 // authenticated, they will be redirected to /login with the "next" get parameter
 // set to the attempted URL.
 func (sAuth SessionAuth) LoginRequired(r render.Render, user User, req *http.Request) {
-	if user.IsAuthenticated() == false {
+	if sAuth.IsResourceType(user) && user.IsAuthenticated() == false {
 		path := fmt.Sprintf("%s?%s=%s", sAuth.RedirectUrl, sAuth.RedirectParam, req.URL.Path)
 		r.Redirect(path, 302)
 	}
@@ -104,6 +108,12 @@ func (sAuth SessionAuth) LoginRequired(r render.Render, user User, req *http.Req
 // UpdateUser updates the User object stored in the session. This is useful incase a change
 // is made to the user model that needs to persist across requests.
 func (sAuth SessionAuth) UpdateUser(s sessions.Session, user User) error {
-	s.Set(sAuth.SessionKey, user.UniqueId())
+	if sAuth.IsResourceType(user) {
+		s.Set(sAuth.SessionKey, user.UniqueId())
+	}
 	return nil
+}
+
+func (sAuth SessionAuth) IsResourceType(user User) bool {
+	return sAuth.ResourceType == reflect.TypeOf(user).String()
 }
